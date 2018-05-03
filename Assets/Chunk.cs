@@ -40,10 +40,9 @@ public class Chunk : MonoBehaviour {
 	void Start() {
 		for (int x = 0; x < size.x; x++) {
 			for (int z = 0; z < size.z; z++) {
-				float frequency = 0.5f;
 				int xWorld = Mathf.FloorToInt(x + position.x * size.x);
 				int zWorld = Mathf.FloorToInt(z + position.z * size.z);
-				int height = Mathf.RoundToInt(Mathf.PerlinNoise(xWorld*0.05145f*frequency, zWorld*0.05145f*frequency)*size.y);
+				int height = GenerateHeight(new float[]{0.4f}, xWorld, zWorld);
 				for (int y = 0; y < height; y++) {
 					blocks[x, y, z] = Block.Create(Block.Type.Dirt);
 				}
@@ -52,7 +51,13 @@ public class Chunk : MonoBehaviour {
 		Draw();
 	}
 
-	int GenerateHeight()
+	int GenerateHeight(float[] frequencys, int xWorld, int zWorld) {
+		int runningAverage = 0;
+		foreach(float frequency in frequencys) {
+			runningAverage += Mathf.RoundToInt(Mathf.PerlinNoise(xWorld*0.05145f*frequency, zWorld*0.05145f*frequency)*size.y);
+		}
+		return runningAverage / frequencys.Length;
+	}
 
 	public void Draw() {
 		Mesh mesh = new Mesh();
@@ -213,7 +218,7 @@ public class Chunk : MonoBehaviour {
 		if (xOutOfBounds) outCount++;
 		if (yOutOfBounds) outCount++;
 		if (zOutOfBounds) outCount++;
-		
+
 		if (outCount > 1) {
 			Debug.LogError("Getting block that is not in chunk nor in neighbor.");
 			return null;

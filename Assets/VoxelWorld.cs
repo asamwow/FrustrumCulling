@@ -8,6 +8,10 @@ public class VoxelWorld : MonoBehaviour {
 
 	Dictionary<Vector3Int, Chunk> chunks = new Dictionary<Vector3Int, Chunk>();
 
+	public GameController gameController;
+
+	public Vector3 size;
+
 	public Chunk GetChunk(Vector3Int location) {
 		if (!chunks.ContainsKey(location)) {
 			return null;

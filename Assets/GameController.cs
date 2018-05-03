@@ -6,8 +6,7 @@ public class GameController : MonoBehaviour {
 
 	VoxelWorld world;
 
-	[SerializeField]
-	Vector2Int startingSize;
+	public Vector2Int startingSize;
 
 	// [SerializeField]
 	// Transform playerTransform;
@@ -19,10 +18,12 @@ public class GameController : MonoBehaviour {
 	void Awake() {
 		Chunk.prefab = loadResource<Chunk>("chunkPrefab");
 		VoxelWorld.prefab = loadResource<VoxelWorld>("voxelWorldPrefab");
+		// VoxelWorld.size = new Vector3(startingSize.x, Chunk.size.z, startingSize.y);
 	}
 
 	void Start () {
 		world = GameObject.Instantiate(VoxelWorld.prefab);
+		world.gameController = this;
 		StartCoroutine(GenerateIteratively(world));
 	}
 
