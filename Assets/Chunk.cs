@@ -9,9 +9,10 @@ public class Chunk : MonoBehaviour {
 
 	MeshRenderer renderer;
 	MeshFilter filter;
+	MeshCollider collider;
 
 	/// Position of the chunk in chunk coordinates
-	Vector3Int position;
+	public Vector3Int position {get; private set;}
 
 	/// World this chunk is in
 	VoxelWorld world;
@@ -34,6 +35,7 @@ public class Chunk : MonoBehaviour {
 	void Awake() {
 		renderer = GetComponent<MeshRenderer>();
 		filter = GetComponent<MeshFilter>();
+		collider = GetComponent<MeshCollider>();
 		blocks = new Block[size.x, size.y, size.z];
 	}
 
@@ -42,13 +44,13 @@ public class Chunk : MonoBehaviour {
 			for (int z = 0; z < size.z; z++) {
 				int xWorld = Mathf.FloorToInt(x + position.x * size.x);
 				int zWorld = Mathf.FloorToInt(z + position.z * size.z);
-				int height = GenerateHeight(new float[]{0.4f}, xWorld, zWorld);
+				int height = GenerateHeight(new float[]{0.3f}, xWorld, zWorld);
 				for (int y = 0; y < height; y++) {
 					blocks[x, y, z] = Block.Create(Block.Type.Dirt);
 				}
 			}
 		}
-		Draw();
+		// Draw();
 	}
 
 	int GenerateHeight(float[] frequencys, int xWorld, int zWorld) {
@@ -75,8 +77,11 @@ public class Chunk : MonoBehaviour {
 					}
 					// Create quad where empty space is found
 					for (int i = 0; i < 6; i++) {
-						if (getBlock(indexToDirection(i) + new Vector3Int(x, y, z), neighboringBlocks) == null) {
-							quadCount++;
+						bool outOfBounds;
+						if (getBlock(indexToDirection(i) + new Vector3Int(x, y, z), neighboringBlocks, out outOfBounds) == null) {
+							if (!outOfBounds) {
+								quadCount++;
+							}
 						}
 					}
 				}
@@ -98,7 +103,11 @@ public class Chunk : MonoBehaviour {
 					// Create quad where empty space is found
 					Vector3 blockCenter = new Vector3(x, y, z) * 2f;
 					for (int i = 0; i < 6; i++) {
-						if (getBlock(indexToDirection(i) + new Vector3Int(x, y, z), neighboringBlocks) != null) {
+						bool outOfBounds;
+						if (getBlock(indexToDirection(i) + new Vector3Int(x, y, z), neighboringBlocks, out outOfBounds) != null) {
+							continue;
+						}
+						if (outOfBounds) {
 							continue;
 						}
 						Vector3Int direction = indexToDirection(i);
@@ -172,6 +181,7 @@ public class Chunk : MonoBehaviour {
 		mesh.triangles = triangles;
 		mesh.normals = normals;
 		filter.mesh = mesh;
+		collider.sharedMesh = mesh;
 	}
 
 	/// Gets a block from this chunk
@@ -201,7 +211,7 @@ public class Chunk : MonoBehaviour {
 	}
 
 	/// Gets block that could potentially be in the neihbor
-	Block getBlock(Vector3Int position, Chunk[] neighboringBlocks) {
+	Block getBlock(Vector3Int position, Chunk[] neighboringBlocks, out bool outOfBounds) {
 		bool xOutOfBounds = false;
 		bool yOutOfBounds = false;
 		bool zOutOfBounds = false;
@@ -221,47 +231,61 @@ public class Chunk : MonoBehaviour {
 
 		if (outCount > 1) {
 			Debug.LogError("Getting block that is not in chunk nor in neighbor.");
+			outOfBounds = true;
 			return null;
 		}
 
 		if (outCount == 0) {
+			outOfBounds = false;
 			return blocks[position.x, position.y, position.z];
 		}
 
 		if (position.x < 0) {
 			if (neighboringBlocks[2] == null) {
+				outOfBounds = true;
 				return null;
 			}
+			outOfBounds = false;
 			return neighboringBlocks[2].GetBlock(new Vector3Int(size.x-position.x, position.y, position.z));
 		}
 		if (position.x >= size.x) {
 			if (neighboringBlocks[3] == null) {
+				outOfBounds = true;
 				return null;
 			}
+			outOfBounds = false;
 			return neighboringBlocks[3].GetBlock(new Vector3Int(position.x-size.x, position.y, position.z));
 		}
 		if (position.y < 0) {
 			if (neighboringBlocks[0] == null) {
+				outOfBounds = true;
 				return null;
 			}
+			outOfBounds = false;
 			return neighboringBlocks[0].GetBlock(new Vector3Int(position.x, size.y - position.y, position.z));
 		}
 		if (position.y >= size.y) {
 			if (neighboringBlocks[1] == null) {
+				outOfBounds = true;
 				return null;
 			}
+			outOfBounds = false;
 			return neighboringBlocks[1].GetBlock(new Vector3Int(position.x, position.y - size.y, position.z));
 		}
 		if (position.z < 0) {
 			if (neighboringBlocks[4] == null) {
+				outOfBounds = true;
 				return null;
 			}
+			outOfBounds = false;
 			return neighboringBlocks[4].GetBlock(new Vector3Int(position.x, position.y, size.z - position.z));
 		}
 		// if (position.z >= size.z) {
 			if (neighboringBlocks[5] == null) {
+				outOfBounds = true;
 				return null;
 			}
+			outOfBounds = false;
 			return neighboringBlocks[5].GetBlock(new Vector3Int(position.x, position.y, position.z - size.z));
 		// }
 	}
