@@ -21,7 +21,43 @@ public class GameController : MonoBehaviour {
 	public bool getVisible(Transform playerTransform, Chunk chunk) {
 		Vector3 chunkLocation = new Vector3(chunk.position.x * Chunk.size.x - Chunk.size.x/2f, chunk.position.y * Chunk.size.y - Chunk.size.y/2f, chunk.position.z * Chunk.size.z - Chunk.size.z/2f);
 		Debug.Log(Vector3.Dot(playerTransform.forward, chunkLocation - playerTransform.position));
-		return true;
+
+        // Get the distance between the object and the camera
+        Vector3 distance = chunk.transform.position - playerTransform.position;
+
+        if (distance.magnitude <= Chunk.size.magnitude * 1.4)
+        {
+            return true;
+        }
+
+        float d = Vector3.Dot(distance, playerTransform.forward);
+
+
+
+        // Calculate the cutoff distance
+        float cutoff = Mathf.Tan(Camera.main.fieldOfView * Mathf.PI / 180) * d;
+
+        // Calculate the vertical and horizontal distances between the object and the camera
+        float xActual = Vector3.Dot(distance, playerTransform.right);
+        float yActual = Vector3.Dot(distance, playerTransform.up);
+
+
+        if (
+            xActual >= cutoff ||
+            xActual <= -cutoff ||
+            yActual >= cutoff ||
+            yActual <= -cutoff
+            )
+        {
+            Debug.Log("FALSE");
+            return false;
+        }
+
+        Debug.Log("True");
+
+
+
+        return true;
 	}
 
 	void Awake() {
@@ -44,8 +80,12 @@ public class GameController : MonoBehaviour {
 
 	void Update() {
 		if (!loading) {
-			getVisible(playerTransform, world.GetChunk(new Vector3Int(0, 0, 0)));
-		}
+            // Cull the scene
+            Cull(playerTransform, world);
+        }
+
+
+
 	}
 
 	void Cull(Transform playerTransform, VoxelWorld voxelWorld) {
