@@ -4,6 +4,13 @@ using UnityEngine;
 
 public class GameController : MonoBehaviour {
 
+	public enum CullingType {
+		None,
+		Custom
+	};
+
+	public CullingType cullingType;
+
 	VoxelWorld world;
 
 	[SerializeField]
@@ -19,51 +26,32 @@ public class GameController : MonoBehaviour {
 	// Transform playerTransform;
 
 	public bool getVisible(Transform playerTransform, Chunk chunk) {
-		Vector3 chunkLocation = new Vector3(chunk.position.x * Chunk.size.x - Chunk.size.x/2f, chunk.position.y * Chunk.size.y - Chunk.size.y/2f, chunk.position.z * Chunk.size.z - Chunk.size.z/2f);
-		Debug.Log(Vector3.Dot(playerTransform.forward, chunkLocation - playerTransform.position));
+		Vector3 chunkLocation = new Vector3(chunk.position.x * Chunk.size.x - Chunk.size.x/2f, 0f, chunk.position.y * Chunk.size.z - Chunk.size.z/2f);
 
         // Get the distance between the object and the camera
-        Vector3 distance = chunk.transform.position - playerTransform.position;
+        Vector3 distance = playerTransform.position-chunk.transform.position;
 
-        if (distance.magnitude <= Chunk.size.magnitude * 1.4)
-        {
+        if (distance.magnitude <= Chunk.size.magnitude * 1.4) {
             return true;
         }
 
         float d = Vector3.Dot(distance, playerTransform.forward);
 
-
-
         // Calculate the cutoff distance
-        float cutoff = Mathf.Tan(Camera.main.fieldOfView * Mathf.PI / 180) * d;
+        float cutoff = Mathf.Tan(90 * Mathf.PI / 180) * d;
 
         // Calculate the vertical and horizontal distances between the object and the camera
         float xActual = Vector3.Dot(distance, playerTransform.right);
         float yActual = Vector3.Dot(distance, playerTransform.up);
-
-
-        if (
-            xActual >= cutoff ||
-            xActual <= -cutoff ||
-            yActual >= cutoff ||
-            yActual <= -cutoff
-            )
-        {
-            Debug.Log("FALSE");
+        if (xActual >= cutoff || xActual <= -cutoff || yActual >= cutoff || yActual <= -cutoff) {
             return false;
         }
-
-        Debug.Log("True");
-
-
-
         return true;
 	}
 
 	void Awake() {
 		Chunk.prefab = loadResource<Chunk>("chunkPrefab");
 		VoxelWorld.prefab = loadResource<VoxelWorld>("voxelWorldPrefab");
-		// VoxelWorld.size = new Vector3(startingSize.x, Chunk.size.z, startingSize.y);
 	}
 
 	void Start () {
@@ -72,27 +60,38 @@ public class GameController : MonoBehaviour {
 		for (int x = 0; x <= startingSize.x; x++) {
 			for (int z = 0; z <= startingSize.y; z++) {
 				// Subtract half of starting size to make the world centered over origin
-				world.CreateChunk(new Vector3Int(x - startingSize.x / 2, 0, z - startingSize.y / 2));
+				world.CreateChunk(new Vector2Int(x - startingSize.x / 2, z - startingSize.y / 2));
 			}
 		}
 		StartCoroutine(GenerateIteratively(world));
 	}
 
 	void Update() {
-		if (!loading) {
-            // Cull the scene
-            Cull(playerTransform, world);
-        }
+		if (loading) {
+			return;
+		}
 
+		if (Input.GetKeyDown(KeyCode.A)) {
+			Debug.Log("Culling Now");
+			cullingType = CullingType.Custom;
+		}
+		if (Input.GetKeyDown(KeyCode.B)) {
+			Debug.Log("No Longer Culling");
+			EnableAllChunks(world);
+			cullingType = CullingType.None;
+		}
 
-
+		// Cull the scene
+		if (cullingType == CullingType.Custom) {
+			Cull(playerTransform, world);
+		}
 	}
 
 	void Cull(Transform playerTransform, VoxelWorld voxelWorld) {
 		for (int x = 0; x <= startingSize.x; x++) {
 			for (int z = 0; z <= startingSize.y; z++) {
 				// Subtract half of starting size to make the world centered over origin
-				Chunk chunk = world.GetChunk(new Vector3Int(x - startingSize.x / 2, 0, z - startingSize.y / 2));
+				Chunk chunk = world.GetChunk(new Vector2Int(x - startingSize.x / 2, z - startingSize.y / 2));
 				if (getVisible(playerTransform, chunk)) {
 					chunk.gameObject.SetActive(true);
 				} else {
@@ -102,11 +101,19 @@ public class GameController : MonoBehaviour {
 		}
 	}
 
+	void EnableAllChunks(VoxelWorld voxelWorld) {
+		for (int x = 0; x <= startingSize.x; x++) {
+			for (int z = 0; z <= startingSize.y; z++) {
+				world.GetChunk(new Vector2Int(x - startingSize.x / 2, z - startingSize.y / 2)).gameObject.SetActive(true);
+			}
+		}
+	}
+
 	IEnumerator GenerateIteratively(VoxelWorld world) {
 		for (int x = 0; x <= startingSize.x; x++) {
 			for (int z = 0; z <= startingSize.y; z++) {
 				// Subtract half of starting size to make the world centered over origin
-				world.GetChunk(new Vector3Int(x - startingSize.x / 2, 0, z - startingSize.y / 2)).Draw();
+				world.GetChunk(new Vector2Int(x - startingSize.x / 2, z - startingSize.y / 2)).Draw();
 				yield return null;
 			}
 		}

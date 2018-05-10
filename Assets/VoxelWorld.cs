@@ -6,20 +6,20 @@ public class VoxelWorld : MonoBehaviour {
 
 	public static VoxelWorld prefab;
 
-	Dictionary<Vector3Int, Chunk> chunks = new Dictionary<Vector3Int, Chunk>();
+	Dictionary<Vector2Int, Chunk> chunks = new Dictionary<Vector2Int, Chunk>();
 
 	public GameController gameController;
 
 	public Vector3 size;
 
-	public Chunk GetChunk(Vector3Int location) {
+	public Chunk GetChunk(Vector2Int location) {
 		if (!chunks.ContainsKey(location)) {
 			return null;
 		}
 		return chunks[location];
 	}
 
-	public void CreateChunk(Vector3Int location) {
+	public void CreateChunk(Vector2Int location) {
 		if (chunks.ContainsKey(location)) {
 			chunks[location].Draw();
 			return;
@@ -27,7 +27,7 @@ public class VoxelWorld : MonoBehaviour {
 		chunks.Add(location, Chunk.CreateChunk(location, this));
 	}
 
-	void drawChunk(Vector3Int location) {
+	void drawChunk(Vector2Int location) {
 		if (!chunks.ContainsKey(location)) {
 			return;
 		}
